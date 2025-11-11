@@ -29,6 +29,26 @@ export class KycStack extends cdk.Stack {
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       versioned: true,
+      cors: [
+        {
+          allowedMethods: [
+            s3.HttpMethods.GET,
+            s3.HttpMethods.PUT,
+            s3.HttpMethods.POST,
+            s3.HttpMethods.DELETE,
+            s3.HttpMethods.HEAD,
+          ],
+          allowedOrigins: ['*'],
+          allowedHeaders: ['*'],
+          exposedHeaders: [
+            'ETag',
+            'x-amz-server-side-encryption',
+            'x-amz-request-id',
+            'x-amz-id-2',
+          ],
+          maxAge: 3000,
+        },
+      ],
       lifecycleRules: [
         {
           expiration: cdk.Duration.days(90),
@@ -274,6 +294,13 @@ export class KycStack extends cdk.Stack {
         const ddbDocClient = DynamoDBDocumentClient.from(client);
         const s3Client = new S3Client({});
 
+        const corsHeaders = {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type,X-Api-Key,Authorization',
+          'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+        };
+
         exports.handler = async (event) => {
           console.log('Event:', JSON.stringify(event, null, 2));
           
@@ -294,7 +321,7 @@ export class KycStack extends cdk.Stack {
               
               return {
                 statusCode: 200,
-                headers: { 'Content-Type': 'application/json' },
+                headers: corsHeaders,
                 body: JSON.stringify(result.Items || []),
               };
             }
@@ -312,7 +339,7 @@ export class KycStack extends cdk.Stack {
               
               return {
                 statusCode: 200,
-                headers: { 'Content-Type': 'application/json' },
+                headers: corsHeaders,
                 body: JSON.stringify(result.Items || []),
               };
             }
@@ -333,19 +360,21 @@ export class KycStack extends cdk.Stack {
               
               return {
                 statusCode: 200,
-                headers: { 'Content-Type': 'application/json' },
+                headers: corsHeaders,
                 body: JSON.stringify({ uploadUrl: presignedUrl, key }),
               };
             }
             
             return {
               statusCode: 404,
+              headers: corsHeaders,
               body: JSON.stringify({ message: 'Not Found' }),
             };
           } catch (error) {
             console.error('Error:', error);
             return {
               statusCode: 500,
+              headers: corsHeaders,
               body: JSON.stringify({ message: 'Internal Server Error', error: error.message }),
             };
           }
