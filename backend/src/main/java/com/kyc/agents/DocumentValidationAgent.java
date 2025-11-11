@@ -31,7 +31,7 @@ import java.util.Map;
  * 
  * Publishes Document.Validated event to EventBridge on success.
  */
-public class DocumentValidationAgent implements RequestHandler<Map<String, Object>, KYCEvent> {
+public class DocumentValidationAgent implements RequestHandler<S3Event, KYCEvent> {
     private static final Logger logger = LoggerFactory.getLogger(DocumentValidationAgent.class);
     private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     
@@ -48,15 +48,27 @@ public class DocumentValidationAgent implements RequestHandler<Map<String, Objec
     }
     
     @Override
-    public KYCEvent handleRequest(Map<String, Object> input, Context context) {
-        logger.info("DocumentValidationAgent invoked: {}", input);
+    public KYCEvent handleRequest(S3Event s3Event, Context context) {
+        logger.info("DocumentValidationAgent invoked with S3Event");
         
         try {
-            // Extract customer info from input
-            String customerId = extractCustomerId(input);
-            String documentUrl = extractDocumentUrl(input);
+            if (s3Event == null || s3Event.getRecords() == null || s3Event.getRecords().isEmpty()) {
+                logger.error("S3Event is null or has no records");
+                throw new RuntimeException("Invalid S3 event");
+            }
             
-            logger.info("Processing document validation for customer: {}", customerId);
+            // Process first record
+            S3Event.S3EventNotificationRecord record = s3Event.getRecords().get(0);
+            String bucket = record.getS3().getBucket().getName();
+            String key = record.getS3().getObject().getKey();
+            
+            logger.info("Processing S3 object - Bucket: {}, Key: {}", bucket, key);
+            
+            // Extract customer info from S3 key: uploads/{customerId}/{filename}
+            String customerId = extractCustomerIdFromKey(key);
+            String documentUrl = String.format("s3://%s/%s", bucket, key);
+            
+            logger.info("Extracted customerId: {}, documentUrl: {}", customerId, documentUrl);
             
             // Perform validation (mock logic)
             boolean isValid = validateDocument(documentUrl);
@@ -91,26 +103,14 @@ public class DocumentValidationAgent implements RequestHandler<Map<String, Objec
         }
     }
     
-    private String extractCustomerId(Map<String, Object> input) {
-        // Extract from S3 event or Step Function input
-        if (input.containsKey("customerId")) {
-            return (String) input.get("customerId");
+    private String extractCustomerIdFromKey(String key) {
+        // Expected format: uploads/{customerId}/{filename}
+        String[] parts = key.split("/");
+        if (parts.length >= 2) {
+            return parts[1];
         }
-        
-        // Extract from S3 key pattern: uploads/{customerId}/{filename}
-        if (input.containsKey("Records")) {
-            // S3 event
-            return "customer-" + System.currentTimeMillis();
-        }
-        
+        logger.warn("Could not extract customerId from key: {}", key);
         return "unknown-customer";
-    }
-    
-    private String extractDocumentUrl(Map<String, Object> input) {
-        if (input.containsKey("documentUrl")) {
-            return (String) input.get("documentUrl");
-        }
-        return "s3://bucket/uploads/document.pdf";
     }
     
     private boolean validateDocument(String documentUrl) {

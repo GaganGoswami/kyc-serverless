@@ -286,7 +286,7 @@ export class KycStack extends cdk.Stack {
       handler: 'index.handler',
       code: lambda.Code.fromInline(`
         const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-        const { DynamoDBDocumentClient, QueryCommand, GetItemCommand } = require('@aws-sdk/lib-dynamodb');
+        const { DynamoDBDocumentClient, QueryCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
         const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
         const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
@@ -304,21 +304,25 @@ export class KycStack extends cdk.Stack {
         exports.handler = async (event) => {
           console.log('Event:', JSON.stringify(event, null, 2));
           
-          const path = event.path;
-          const method = event.httpMethod;
+          const path = event.path || event.rawPath || '';
+          const method = event.httpMethod || event.requestContext?.http?.method;
           
           try {
-            // Get KYC status
+            // Get KYC records for specific customer
             if (method === 'GET' && path.startsWith('/kyc/')) {
-              const customerId = path.split('/')[2];
+              const pathParts = path.split('/').filter(p => p);
+              const customerId = pathParts[1];
+              console.log('Querying customer:', customerId);
+              
               const result = await ddbDocClient.send(new QueryCommand({
                 TableName: process.env.TABLE_NAME,
                 KeyConditionExpression: 'customerId = :id',
                 ExpressionAttributeValues: { ':id': customerId },
                 ScanIndexForward: false,
-                Limit: 10,
+                Limit: 100,
               }));
               
+              console.log('Query result items:', result.Items?.length || 0);
               return {
                 statusCode: 200,
                 headers: corsHeaders,
@@ -328,15 +332,14 @@ export class KycStack extends cdk.Stack {
             
             // List all KYC records
             if (method === 'GET' && path === '/kyc') {
-              const result = await ddbDocClient.send(new QueryCommand({
+              console.log('Scanning all KYC records');
+              
+              const result = await ddbDocClient.send(new ScanCommand({
                 TableName: process.env.TABLE_NAME,
-                IndexName: 'KycStatusIndex',
-                KeyConditionExpression: 'kycStatus = :status',
-                ExpressionAttributeValues: { ':status': event.queryStringParameters?.status || 'PENDING' },
-                ScanIndexForward: false,
-                Limit: 50,
+                Limit: 100,
               }));
               
+              console.log('Scan result items:', result.Items?.length || 0);
               return {
                 statusCode: 200,
                 headers: corsHeaders,
@@ -346,14 +349,23 @@ export class KycStack extends cdk.Stack {
             
             // Generate presigned upload URL
             if (method === 'POST' && path === '/upload') {
-              const body = JSON.parse(event.body);
+              const body = JSON.parse(event.body || '{}');
               const { customerId, documentType } = body;
+              console.log('Generating presigned URL for customer:', customerId, 'documentType:', documentType);
               
-              const key = \`uploads/\${customerId}/\${Date.now()}-\${documentType}\`;
+              if (!customerId) {
+                return {
+                  statusCode: 400,
+                  headers: corsHeaders,
+                  body: JSON.stringify({ message: 'customerId is required' }),
+                };
+              }
+              
+              const key = \`uploads/\${customerId}/\${Date.now()}-\${documentType || 'document'}\`;
               const command = new PutObjectCommand({
                 Bucket: process.env.DOCUMENT_BUCKET,
                 Key: key,
-                ContentType: 'application/pdf',
+                ContentType: 'application/octet-stream',
               });
               
               const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
@@ -365,10 +377,11 @@ export class KycStack extends cdk.Stack {
               };
             }
             
+            console.log('No route matched for path:', path, 'method:', method);
             return {
               statusCode: 404,
               headers: corsHeaders,
-              body: JSON.stringify({ message: 'Not Found' }),
+              body: JSON.stringify({ message: 'Not Found', path, method }),
             };
           } catch (error) {
             console.error('Error:', error);

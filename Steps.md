@@ -263,3 +263,11 @@ Starting (3/3) Deploy frontend to S3
 
 aws s3 sync /Users/Gagan/Code/aws/kyc-serverless/frontend/dist s3://kyc-ui-553424001208-us-east-1 --delete
 
+
+
+
+
+
+cd /Users/Gagan/Code/aws/kyc-serverless && aws cloudformation describe-stacks --stack-name KycStack --query 'Stacks[0].Outputs' --output json 2>/dev/null || echo "Stack not found or AWS CLI not configured"
+
+
