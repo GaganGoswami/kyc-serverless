@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { kycApi } from '../api';
-import { AlertCircle, Search, Filter } from 'lucide-react';
+import { AlertCircle, Search, Filter, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { KYCStatus } from '../config';
 
@@ -15,6 +16,7 @@ const STATUS_COLORS: Record<KYCStatus, string> = {
 };
 
 function Logs() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -147,6 +149,9 @@ function Logs() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Details
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -155,7 +160,10 @@ function Logs() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                       {format(new Date(record.lastUpdated), 'MMM dd, yyyy HH:mm:ss')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <td 
+                      className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                      onClick={() => navigate(`/customer/${record.customerId}`)}
+                    >
                       {record.customerId}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
@@ -168,6 +176,15 @@ function Logs() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 max-w-md truncate">
                       {record.metadata || 'No additional details'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => navigate(`/customer/${record.customerId}`)}
+                        className="inline-flex items-center text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}

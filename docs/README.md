@@ -11,7 +11,7 @@ Welcome to the comprehensive documentation for the AWS Serverless KYC (Know Your
 
 ### Infrastructure & Deployment
 4. **[Infrastructure Guide](./04-infrastructure.md)** - AWS CDK stack, resources, and configuration
-5. **[Deployment Guide](./05-deployment.md)** - Production and staging deployments
+5. **[Deployment Guide](./05-deployment.md)** - Frontend deployment, CloudFront cache, and CI/CD
 6. **[AWS Services Reference](./06-aws-services.md)** - Complete AWS service inventory and configuration
 
 ### Application Components

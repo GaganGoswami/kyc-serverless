@@ -45,19 +45,64 @@ cd ..
 
 #### Step 3: Build & Deploy Frontend
 
+##### Option A: Using Deployment Script (Recommended)
+
+```bash
+# From project root
+chmod +x deploy-frontend.sh
+./deploy-frontend.sh
+```
+
+**This script automatically:**
+- Builds the React frontend
+- Uploads to S3
+- Invalidates CloudFront cache
+- Waits for cache invalidation to complete
+
+##### Option B: Manual Deployment
+
 ```bash
 cd frontend
 
 # Update .env with your API Gateway URL
-echo "VITE_API_URL=https://your-api-id.execute-api.region.amazonaws.com/prod" > .env
+API_URL=$(aws cloudformation describe-stacks \
+  --stack-name KycStack \
+  --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
+  --output text)
+  
+echo "VITE_API_URL=${API_URL}" > .env
 
 npm install
 npm run build
 
 # Get bucket name from CDK outputs
-aws s3 sync dist/ s3://your-ui-bucket-name
+UI_BUCKET=$(aws cloudformation describe-stacks \
+  --stack-name KycStack \
+  --query "Stacks[0].Outputs[?OutputKey=='UIBucketName'].OutputValue" \
+  --output text)
+
+# Upload to S3
+aws s3 sync dist/ s3://$UI_BUCKET --delete
+
+# Get CloudFront distribution ID
+DISTRIBUTION_ID=$(aws cloudfront list-distributions \
+  --query "DistributionList.Items[?Origins.Items[0].DomainName=='${UI_BUCKET}.s3.amazonaws.com'].Id" \
+  --output text)
+
+# Invalidate CloudFront cache (IMPORTANT!)
+aws cloudfront create-invalidation \
+  --distribution-id $DISTRIBUTION_ID \
+  --paths "/*"
+
+# Wait for invalidation to complete
+aws cloudfront wait invalidation-completed \
+  --distribution-id $DISTRIBUTION_ID \
+  --id $(aws cloudfront list-invalidations --distribution-id $DISTRIBUTION_ID --query 'InvalidationList.Items[0].Id' --output text)
+
 cd ..
 ```
+
+**⚠️ Important**: Always invalidate CloudFront cache after deploying UI changes!
 
 ## Configuration
 
@@ -156,17 +201,46 @@ cdk synth
 cdk deploy
 ```
 
-### Frontend Not Loading
+### Frontend Not Loading or Showing Old Content
+
+**The most common issue is CloudFront caching old content.**
+
+#### Solution 1: Use Deployment Script
 
 ```bash
-# Check CloudFront distribution status
-aws cloudfront list-distributions
-
-# Invalidate CloudFront cache
-aws cloudfront create-invalidation \
-  --distribution-id YOUR_DIST_ID \
-  --paths "/*"
+# From project root - this handles cache invalidation automatically
+./deploy-frontend.sh
 ```
+
+#### Solution 2: Manual Cache Invalidation
+
+```bash
+# Get CloudFront distribution ID
+DISTRIBUTION_ID=$(aws cloudfront list-distributions \
+  --query "DistributionList.Items[?Origins.Items[?contains(DomainName,'kyc-ui')]].Id" \
+  --output text)
+
+# Create invalidation
+INVALIDATION_ID=$(aws cloudfront create-invalidation \
+  --distribution-id $DISTRIBUTION_ID \
+  --paths "/*" \
+  --query 'Invalidation.Id' \
+  --output text)
+
+# Wait for completion (takes 30-60 seconds)
+aws cloudfront wait invalidation-completed \
+  --distribution-id $DISTRIBUTION_ID \
+  --id $INVALIDATION_ID
+
+echo "Cache cleared! Refresh your browser (Ctrl+Shift+R or Cmd+Shift+R)"
+```
+
+#### Browser Hard Refresh
+
+After invalidation completes, do a hard refresh in your browser:
+- **Windows/Linux**: `Ctrl + Shift + R`
+- **Mac**: `Cmd + Shift + R`
+- **Alternative**: Open in incognito/private mode
 
 ### API Gateway CORS Issues
 

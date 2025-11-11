@@ -4,6 +4,7 @@ import { FileCheck, Upload, ListChecks, Moon, Sun } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import UploadPage from './pages/Upload';
 import Logs from './pages/Logs';
+import CustomerDetails from './pages/CustomerDetails';
 
 function App() {
   const [darkMode, setDarkMode] = useState(true);
@@ -77,6 +78,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/upload" element={<UploadPage />} />
               <Route path="/logs" element={<Logs />} />
+              <Route path="/customer/:customerId" element={<CustomerDetails />} />
             </Routes>
           </main>
 

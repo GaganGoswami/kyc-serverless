@@ -154,6 +154,22 @@ npm run build
 
 ### Step 6: Deploy Frontend
 
+#### Option A: Using Deployment Script (Recommended)
+
+```bash
+# From project root
+chmod +x deploy-frontend.sh
+./deploy-frontend.sh
+```
+
+**What this script does:**
+- Builds the React application
+- Uploads all files to S3
+- Invalidates CloudFront cache automatically
+- Waits for cache invalidation to complete
+
+#### Option B: Manual Deployment
+
 ```bash
 # Get UI bucket name from CDK output
 UI_BUCKET=$(aws cloudformation describe-stacks \
@@ -162,10 +178,27 @@ UI_BUCKET=$(aws cloudformation describe-stacks \
   --output text)
 
 # Deploy to S3
-aws s3 sync dist/ s3://$UI_BUCKET
+aws s3 sync dist/ s3://$UI_BUCKET --delete
+
+# Invalidate CloudFront cache
+DISTRIBUTION_ID=$(aws cloudfront list-distributions \
+  --query "DistributionList.Items[?Origins.Items[0].DomainName=='${UI_BUCKET}.s3.amazonaws.com'].Id" \
+  --output text)
+
+aws cloudfront create-invalidation \
+  --distribution-id $DISTRIBUTION_ID \
+  --paths "/*"
+
+# Wait for invalidation (takes 30-60 seconds)
+echo "Waiting for CloudFront cache to clear..."
+aws cloudfront wait invalidation-completed \
+  --distribution-id $DISTRIBUTION_ID \
+  --id $(aws cloudfront list-invalidations --distribution-id $DISTRIBUTION_ID --query 'InvalidationList.Items[0].Id' --output text)
 
 cd ..
 ```
+
+**Note**: Always invalidate CloudFront cache after deploying UI changes, otherwise you'll see old cached content.
 
 ## Verify Deployment
 
@@ -334,10 +367,13 @@ cdk synth
 cdk deploy
 ```
 
-### Issue: Frontend Not Loading
+### Issue: Frontend Not Loading or Showing Old Content
 
 ```bash
-# Invalidate CloudFront cache
+# Use the deployment script to rebuild and invalidate cache
+./deploy-frontend.sh
+
+# Or manually invalidate CloudFront cache
 DISTRIBUTION_ID=$(aws cloudfront list-distributions \
   --query "DistributionList.Items[?Origins.Items[?contains(DomainName,'kyc-ui')]].Id" \
   --output text)
@@ -345,7 +381,14 @@ DISTRIBUTION_ID=$(aws cloudfront list-distributions \
 aws cloudfront create-invalidation \
   --distribution-id $DISTRIBUTION_ID \
   --paths "/*"
+
+# Wait for invalidation to complete
+aws cloudfront wait invalidation-completed \
+  --distribution-id $DISTRIBUTION_ID \
+  --id $(aws cloudfront list-invalidations --distribution-id $DISTRIBUTION_ID --query 'InvalidationList.Items[0].Id' --output text)
 ```
+
+**Tip**: After deploying UI changes, do a hard refresh in your browser (Ctrl+Shift+R on Windows/Linux or Cmd+Shift+R on Mac)
 
 ### Issue: Lambda Build Fails
 

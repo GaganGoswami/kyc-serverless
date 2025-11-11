@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { kycApi } from '../api';
 import { KYCStatus } from '../config';
 import { AlertCircle, CheckCircle, Clock, XCircle, TrendingUp, FileCheck } from 'lucide-react';
@@ -23,6 +24,7 @@ const STATUS_ICONS: Record<KYCStatus, React.ReactNode> = {
 };
 
 function Dashboard() {
+  const navigate = useNavigate();
   const { data: records, isLoading, error, refetch } = useQuery({
     queryKey: ['kycRecords'],
     queryFn: () => kycApi.getKycRecords(),
@@ -185,8 +187,12 @@ function Dashboard() {
               </thead>
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                 {customerStatuses.map((record) => (
-                  <tr key={`${record.customerId}-${record.eventType}`} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                  <tr 
+                    key={`${record.customerId}-${record.eventType}`} 
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/customer/${record.customerId}`)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline">
                       {record.customerId}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
