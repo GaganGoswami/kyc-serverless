@@ -132,7 +132,7 @@ export class KycStack extends cdk.Stack {
     kycEventBus.grantPutEventsTo(lambdaRole);
 
     const commonLambdaProps = {
-      runtime: lambda.Runtime.JAVA_17,
+      runtime: lambda.Runtime.JAVA_21,
       memorySize: 512,
       timeout: cdk.Duration.seconds(30),
       role: lambdaRole,
