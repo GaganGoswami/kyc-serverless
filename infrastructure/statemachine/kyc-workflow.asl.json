@@ -1,0 +1,184 @@
+{
+  "Comment": "KYC Verification Workflow - Orchestrates document validation, identity verification, fraud detection, and compliance reporting",
+  "StartAt": "DocumentValidation",
+  "States": {
+    "DocumentValidation": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "DocumentValidationAgent",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.validationResult",
+      "Next": "CheckValidation",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "ValidationFailed"
+        }
+      ]
+    },
+    "CheckValidation": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.validationResult.Payload.isValid",
+          "BooleanEquals": true,
+          "Next": "IdentityVerification"
+        }
+      ],
+      "Default": "ValidationFailed"
+    },
+    "IdentityVerification": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "IdentityVerificationAgent",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.verificationResult",
+      "Next": "CheckVerification",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "VerificationFailed"
+        }
+      ]
+    },
+    "CheckVerification": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.verificationResult.Payload.isVerified",
+          "BooleanEquals": true,
+          "Next": "FraudDetection"
+        }
+      ],
+      "Default": "VerificationFailed"
+    },
+    "FraudDetection": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "FraudDetectionAgent",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.fraudResult",
+      "Next": "CheckFraud",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "FraudCheckFailed"
+        }
+      ]
+    },
+    "CheckFraud": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.fraudResult.Payload.fraudDetected",
+          "BooleanEquals": false,
+          "Next": "ComplianceReporting"
+        }
+      ],
+      "Default": "FraudDetected"
+    },
+    "ComplianceReporting": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "ComplianceReportingAgent",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.complianceResult",
+      "Next": "KYCCompleted",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "ComplianceFailed"
+        }
+      ]
+    },
+    "KYCCompleted": {
+      "Type": "Succeed",
+      "Comment": "KYC verification completed successfully"
+    },
+    "ValidationFailed": {
+      "Type": "Fail",
+      "Error": "ValidationError",
+      "Cause": "Document validation failed"
+    },
+    "VerificationFailed": {
+      "Type": "Fail",
+      "Error": "VerificationError",
+      "Cause": "Identity verification failed"
+    },
+    "FraudDetected": {
+      "Type": "Fail",
+      "Error": "FraudError",
+      "Cause": "Fraud indicators detected"
+    },
+    "FraudCheckFailed": {
+      "Type": "Fail",
+      "Error": "FraudCheckError",
+      "Cause": "Fraud detection process failed"
+    },
+    "ComplianceFailed": {
+      "Type": "Fail",
+      "Error": "ComplianceError",
+      "Cause": "Compliance reporting failed"
+    }
+  }
+}

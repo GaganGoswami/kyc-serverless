@@ -1,0 +1,147 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudFormationAccess",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DeleteStack",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:GetTemplate",
+        "cloudformation:ValidateTemplate",
+        "cloudformation:CreateChangeSet",
+        "cloudformation:DescribeChangeSet",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:DeleteChangeSet",
+        "cloudformation:GetTemplateSummary",
+        "cloudformation:ListStacks"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "S3FullAccess",
+      "Effect": "Allow",
+      "Action": "s3:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "ECRFullAccess",
+      "Effect": "Allow",
+      "Action": "ecr:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "SSMAccess",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:PutParameter",
+        "ssm:DeleteParameter",
+        "ssm:DescribeParameters",
+        "ssm:GetParameterHistory",
+        "ssm:AddTagsToResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IAMAccess",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:PassRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:UpdateRole"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "LambdaFullAccess",
+      "Effect": "Allow",
+      "Action": "lambda:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "DynamoDBFullAccess",
+      "Effect": "Allow",
+      "Action": "dynamodb:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "EventBridgeFullAccess",
+      "Effect": "Allow",
+      "Action": "events:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "StepFunctionsFullAccess",
+      "Effect": "Allow",
+      "Action": "states:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "APIGatewayFullAccess",
+      "Effect": "Allow",
+      "Action": "apigateway:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "APIGatewayAccountAccess",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:PATCH",
+        "apigateway:GET",
+        "apigateway:UpdateAccount",
+        "apigateway:GetAccount"
+      ],
+      "Resource": "arn:aws:apigateway:*::/account"
+    },
+    {
+      "Sid": "CloudWatchLogsAccess",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:DescribeLogGroups",
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy",
+        "logs:TagLogGroup",
+        "logs:UntagLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudFrontFullAccess",
+      "Effect": "Allow",
+      "Action": "cloudfront:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchAccess",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:PutMetricAlarm",
+        "cloudwatch:DeleteAlarms",
+        "cloudwatch:DescribeAlarms"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

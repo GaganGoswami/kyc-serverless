@@ -1,0 +1,54 @@
+# CDK
+*.swp
+package-lock.json
+__pycache__
+.pytest_cache
+.venv
+*.egg-info
+.cdk.staging
+cdk.out
+.cdk.context.json
+
+# Java / Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+*.class
+*.log
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.local
+.env.production.local
+.env.development.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# AWS
+.aws-sam/
+samconfig.toml
+.env.production
